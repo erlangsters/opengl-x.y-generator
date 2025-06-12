@@ -10,7 +10,8 @@
 generate(BindingData) ->
     % io:format("binding data: ~p~n",[maps:get(functions, BindingData)]),
 
-    open("/home/intjelic/Workspace/erlangsters/opengl-x.y-generator/output/gl.erl"),
+    open("gl.erl"),
+    % open("/home/intjelic/Workspace/erlangsters/opengl-x.y-generator/output/gl.erl"),
     % open("/home/intjelic/Workspace/erlangsters/opengl-4.6/src/gl.erl"),
 
     write(0, "%% This file is generated. Do not edit!\n"),

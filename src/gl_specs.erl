@@ -208,6 +208,9 @@ remove_api_items(RemoveElements, {Functions0, Enums0}) ->
         {Functions2, Enums2}
     end, {Functions0, Enums0}, RemoveElements).
 
+target_api_string_test({gl, _}) -> "gl";
+target_api_string_test({gles, _}) -> "gles2".
+
 -spec determine_api_items(term(), xmerl:element()) -> [{string(), string()}].
 determine_api_items(Target, Specs) ->
     % The OpenGL specs specifies all the enums and functions that are added to
@@ -240,7 +243,7 @@ determine_api_items(Target, Specs) ->
     % For each OpenGL version (a `feature` element), added enums and commands
     % (read "functions") are specified (in `require` elements) followed by the
     % optional removed enums and commands are specified (in `remove` elements).
-    TargetApi = opengl_gen:target_api_string(Target),
+    TargetApi = target_api_string_test(Target),
     TargetNumber = opengl_gen:target_version_string(Target),
     {Functions, Enums, _} = lists:foldl(fun
         (_FeatureElement, {_Functions, _Enums, true} = Accumulator) ->

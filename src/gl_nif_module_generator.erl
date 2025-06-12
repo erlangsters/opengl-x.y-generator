@@ -44,7 +44,8 @@
 generate(BindingData) ->
     % xxx: should be 'gl_nif.c'
 
-    open("/home/intjelic/Workspace/erlangsters/opengl-x.y-generator/output/gl.c"),
+    open("gl.c"),
+    % open("/home/intjelic/Workspace/erlangsters/opengl-x.y-generator/output/gl.c"),
     % open("/home/intjelic/Workspace/erlangsters/opengl-4.6/c_src/gl.c"),
 
     write(0, "// This file is generated. Do not edit!\n"),

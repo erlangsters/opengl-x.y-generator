@@ -8,8 +8,8 @@
 -import(opengl_gen, [open/1, write/2, write/3, close/0]).
 
 generate(BindingData) ->
-    open("/home/intjelic/Workspace/erlangsters/opengl-x.y-generator/output/gl.hrl"),
     % open("/home/intjelic/Workspace/erlangsters/opengl-4.6/include/gl.hrl"),
+    open("gl.hrl"),
 
     write(0, "%% This file is generated. Do not edit!\n"),
     write(0, "\n"),
