@@ -1,0 +1,42 @@
+name: generate
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  generate:
+    strategy:
+      matrix:
+        include:
+          - api: "gl"
+            version: "3.3"
+          - api: "gl"
+            version: "4.1"
+          - api: "gl"
+            version: "4.6"
+          - api: "gles"
+            version: "2.0"
+          - api: "gles"
+            version: "3.0"
+          - api: "gles"
+            version: "3.1"
+          - api: "gles"
+            version: "3.2"
+
+    runs-on: ubuntu-latest
+    container:
+      image: erlang:28
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          rebar3 escriptize
+          ./_build/default/bin/opengl_gen ${{ matrix.api }} ${{ matrix.version }}
+      - run: zip opengl-${{ matrix.api }}-${{ matrix.version }}-binding.zip gl.c gl.hrl gl.erl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opengl-${{ matrix.api }}-${{ matrix.version }}-binding
+          path: opengl-${{ matrix.api }}-${{ matrix.version }}-binding.zip
