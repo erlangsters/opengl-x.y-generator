@@ -1,5 +1,5 @@
 {application, opengl_gen, [
-    {description, "An escript"},
+    {description, "OpenGL binding generator for the BEAM"},
     {vsn, "0.1.0"},
     {registered, []},
     {applications, [
