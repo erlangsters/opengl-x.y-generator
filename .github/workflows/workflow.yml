@@ -35,7 +35,10 @@ jobs:
       - run: |
           rebar3 escriptize
           ./_build/default/bin/opengl_gen ${{ matrix.api }} ${{ matrix.version }}
-      - run: zip opengl-${{ matrix.api }}-${{ matrix.version }}-binding.zip gl.c gl.hrl gl.erl
+      - run: |
+          apt-get update
+          apt-get install -y zip
+          zip opengl-${{ matrix.api }}-${{ matrix.version }}-binding.zip gl.c gl.hrl gl.erl
       - uses: actions/upload-artifact@v4
         with:
           name: opengl-${{ matrix.api }}-${{ matrix.version }}-binding
