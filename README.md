@@ -1,5 +1,11 @@
 # OpenGL binding generator for the BEAM
 
+[![Erlangsters Repository](https://img.shields.io/badge/erlangsters-opengl--x--y--generator-%23a90432)](https://github.com/erlangsters/opengl-x.y-generator)
+![Supported Erlang/OTP Versions](https://img.shields.io/badge/erlang%2Fotp-28-%23a90432)
+![Current Version](https://img.shields.io/badge/version-0.1.0-%23354052)
+![License](https://img.shields.io/github/license/erlangsters/opengl-4.6)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/erlangsters/opengl-4.6/workflow.yml)](https://github.com/erlangsters/opengl-4.6/actions/workflows/workflow.yml)
+
 The OpenGL binding generator for the Erlang and Elixir programming language.
 Generated bindings work exclusively with the
 [EGL binding](https://github.com/erlangsters/egl-1-5) (and have an internal
