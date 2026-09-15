@@ -13,7 +13,6 @@
 -export([
     read_versions/2,
     read_enums/1,
-    read_commands/1,
     enums_values_map/1, enums_group_names_map/1, enum_no_group_list/1,
     determine_api_items/2
 ]).
@@ -22,11 +21,6 @@
 %%             {"0x9109", ["AttributeType", "UniformType"}}.
 -type gl_enums() :: #{
     Name :: string() => {Value :: string(), Groups :: [string()]}
-}.
-
-%% Example: #{"glAccum" => <command>...</command>}.
--type gl_commands() :: #{
-    Name :: string() => xmerl:element()
 }.
 
 %% Analyze the OpenGL specs and return the list of versions for a given API.
@@ -81,11 +75,7 @@ read_enums(Specs) ->
             case maps:is_key(Name, Acc2) of
                 true ->
                     % Known enum duplicate is 'GL_ACTIVE_PROGRAM_EXT'.
-                    io:format(
-                        user,
-                        "Declaration of enum '~s' in the OpenGL specs is duplicated (ignoring it)...~n",
-                        [Name]
-                    ),
+                    maybe_print_duplicate_enum(Name),
                     Acc2;
                 false ->
                     Group = case maps:get(group, Attributes, undefined) of
@@ -99,50 +89,23 @@ read_enums(Specs) ->
         end, Acc1, xmerl_xpath:string(".//enum", EnumsElement))
     end, #{}, xmerl_xpath:string("//enums", Specs)).
 
-%% Return the OpenGL "commands" defined in the OpenGL specs.
-%%
-%% It reads all defined commands (another name for "functions") in the OpenGL
-%% specs, and return them in a data structure that is easy to work with.
-%%
-%% Note that it includes vendor extension commands as well, but that does not
-%% mean we use them.
-%%
-%% How it looks like in the XML file. (There is a single 'commands' element
-%% that defines all the commands.)
-%%
-%% ```
-%% <commands namespace="GL">
-%%     <command>
-%%         <proto>void <name>glAccum</name></proto>
-%%         <param group="AccumOp"><ptype>GLenum</ptype> <name>op</name></param>
-%%         <param kind="Coord"><ptype>GLfloat</ptype> <name>value</name></param>
-%%         <glx type="render" opcode="137"/>
-%%     </command>
-%%     <command>
-%%         <proto>void <name>glAccumxOES</name></proto>
-%%         ...
-%% </commands>
-%% ```
-%%
--spec read_commands(xmerl:element()) -> gl_commands().
-read_commands(Specs) ->
-    [CommandsElement] = xmerl_xpath:string("//commands", Specs),
-
-    lists:foldl(fun(CommandElement, Acc) ->
-        [NameElement] = xmerl_xpath:string(".//proto/name/text()", CommandElement),
-        Name = xmerl_scan:value_of(NameElement),
-        case maps:is_key(Name, Acc) of
-            true ->
-                io:format(
-                    user,
-                    "Declaration of command '~s' in the OpenGL specs is duplicated (ignoring it)...~n",
-                    [Name]
-                ),
-                Acc;
-            false ->
-                maps:put(Name, CommandElement, Acc)
-        end
-    end, #{}, xmerl_xpath:string(".//command", CommandsElement)).
+maybe_print_duplicate_enum(Name) ->
+    case os:getenv("OPENGL_GEN_DEBUG_SPECS") of
+        "1" ->
+            io:format(
+                user,
+                "Declaration of enum '~s' in the OpenGL specs is duplicated (ignoring it)...~n",
+                [Name]
+            );
+        "true" ->
+            io:format(
+                user,
+                "Declaration of enum '~s' in the OpenGL specs is duplicated (ignoring it)...~n",
+                [Name]
+            );
+        _ ->
+            ok
+    end.
 
 %% Maps enum name to its value (e.g. GL_TEXTURE_2D -> 0x0DE1)
 -spec enums_values_map(gl_enums()) -> #{string() => string()}.
@@ -208,6 +171,9 @@ remove_api_items(RemoveElements, {Functions0, Enums0}) ->
         {Functions2, Enums2}
     end, {Functions0, Enums0}, RemoveElements).
 
+target_api_string_test({gl, _}) -> "gl";
+target_api_string_test({gles, _}) -> "gles2".
+
 -spec determine_api_items(term(), xmerl:element()) -> [{string(), string()}].
 determine_api_items(Target, Specs) ->
     % The OpenGL specs specifies all the enums and functions that are added to
@@ -240,7 +206,7 @@ determine_api_items(Target, Specs) ->
     % For each OpenGL version (a `feature` element), added enums and commands
     % (read "functions") are specified (in `require` elements) followed by the
     % optional removed enums and commands are specified (in `remove` elements).
-    TargetApi = opengl_gen:target_api_string(Target),
+    TargetApi = target_api_string_test(Target),
     TargetNumber = opengl_gen:target_version_string(Target),
     {Functions, Enums, _} = lists:foldl(fun
         (_FeatureElement, {_Functions, _Enums, true} = Accumulator) ->

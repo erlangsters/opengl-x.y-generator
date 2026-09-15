@@ -6,9 +6,9 @@
 %% and version.
 %%
 %% The API can be either OpenGL or OpenGL ES. However, it only supports OpenGL
-%% 3.3, 4.1 and 4.6, and OpenGL ES 2.0, 3.0, 3.1 and 3.2. The generated files
-%% will inconditionally be `gl.erl`, `gl.c` and `gl.hrl` and be placed in the
-%% current working directly.
+%% version 3.3, 4.1 and 4.6, and OpenGL ES version 2.0, 3.0, 3.1 and 3.2. The
+%% generated files will inconditionally be `gl.erl`, `gl.c` and `gl.hrl` and be
+%% placed in the current working directly.
 %%
 %% How to use:
 %%   ./opengl_gen <api> <version>
@@ -20,11 +20,11 @@
 %%    included in the binding.
 %%
 %% 2. Then, it reads the binding specs file in order to "resolve" (understand
-%%    "how to transform the C API") and end up with all the information needed
+%%    "how to wrap the C function") and end up with all the information needed
 %%    to start the generation of the binding.
 %%
-%% 3. Finally, it generates the binding module (gl.erl), an Erlang header
-%%    (gl.hrl) and the NIF module (gl.c).
+%% 3. Finally, it generates the NIF module (gl.erl and gl.c). Additionally, it
+%%    also generate an Erlang header.
 %%
 %% Note that the binding specs was written manually, with the help of scripts
 %% to generate boilerplate code.
@@ -50,6 +50,60 @@
 -type target_api() :: gl | gles.
 -type target_version() :: {integer(), integer()}.
 -type target() :: {target_api(), target_version()}.
+
+
+% -type type_specs() ::
+%     gl_bool |
+%     gl_int |
+%     gl_bool |
+%     gl_uint |
+%     gl_double |
+%     gl_sizei |
+
+%     gl_foobar |
+%     gl_foobar |
+%     gl_foobar |
+%     gl_foobar |
+%     gl_foobar |
+%     gl_foobar
+% .
+
+% -type return_specs() ::
+%     gl_void
+% .
+
+% -type function_params_specs() :: [
+%     {
+%         Direction :: in | out,
+%         Name :: string(),
+%         Type :: type_specs()
+%     }
+% ].
+% -type direct_function_specs() :: [
+%     {name, string()} |
+%     {params, term()} |
+%     {return, term()} | {return, string(), return_specs()} |
+%     {doc, term()} |
+%     {example, term()}
+% ].
+% -type indirect_function_specs() :: {
+%     string(),
+%     Type :: term(),
+%     Form :: element | array
+% }.
+% -type aggretagete_function_specs() :: foo.
+
+% -type binding_specs() :: [
+%     {functions, [{
+%         GlCommandName :: string(),
+%         {direct, direct_function_specs()} | {indirect, indirect_function_resolver()}
+%     }]},
+%     {aggregate_functions, [
+%         {GlCommandName :: string(), [
+%             term()
+%         ]}
+%     ]}
+% ].
 
 target_api_string({gl, _}) -> "gl";
 target_api_string({gles, _}) -> "gles".
@@ -85,6 +139,12 @@ close() ->
     ok.
 
 -spec erlangify_enum_name(string()) -> string().
+erlangify_enum_name("GL_AND") ->
+    "and_";
+erlangify_enum_name("GL_OR") ->
+    "or_";
+erlangify_enum_name("GL_XOR") ->
+    "xor_";
 erlangify_enum_name(Name) ->
     % Consider name "GL_TEXTURE_MAX_LEVEL". It should be converted to
     % "texture_max_level" in Erlang (to make an atom out of it).
@@ -94,7 +154,8 @@ erlangify_enum_name(Name) ->
         nomatch -> Name;
         Rest -> Rest
     end,
-    % Convert to lowercase and replace underscores with underscores (keeping them)
+    % Convert to lowercase and replace underscores with underscores (keeping
+    % them)
     string:lowercase(Name1).
 
 -spec erlangify_enum_group_name(string()) -> string().
@@ -102,13 +163,18 @@ erlangify_enum_group_name(Name) ->
     % Consider group name "TextureParameterName". It should be converted to
     % "texture_parameter_name" in Erlang (to make an atom out of it).
 
+    FixedName = lists:foldl(fun(Suffix, Name_) ->
+        string:trim(Name_, trailing, Suffix)
+    end, Name, ["EXT", "SGIX"]),
+
+
     % Insert underscore before uppercase letters a (except first char).
     Name1 = lists:reverse(lists:foldl(fun
         (C, []) -> [C];
         (C, [H|T]) when C >= $0, C =< $9 -> [C, $_ | [H|T]];
         (C, [H|T]) when C >= $A, C =< $Z -> [C, $_ | [H|T]];
         (C, Acc) -> [C | Acc]
-    end, [], Name)),
+    end, [], FixedName)),
 
     % Convert to lowercase.
     string:lowercase(Name1).
@@ -121,15 +187,24 @@ generate(Target, GlSpecs, BindingSpecs) ->
     % Next, we compute the "binding data", which is all the information needed
     % to generate the binding.
     BindingData0 = binding_resolver:resolve(Target, GlItems, GlSpecs, BindingSpecs),
+    case maps:get(missing_commands, BindingData0, []) of
+        [] ->
+            ok;
+        MissingCmds ->
+            io:format(
+                "Skipping ~b Khronos command(s) with no binding spec (see docs/omissions.md).~n",
+                [length(MissingCmds)]
+            )
+    end,
 
     % We also include the name of the API (for instance, "OpenGL 4.6") which is
     % in the generation of the in-source documentation.
     BindingData1 = maps:put(api_name, namify_target_api(Target), BindingData0),
 
     % Finally, we generate the binding itself, which consists of three files.
-    gl_header_generator:generate(BindingData1),
-    gl_module_generator:generate(BindingData1),
-    gl_nif_module_generator:generate(BindingData1),
+    gl_header_generator:generate(Target, BindingData1),
+    gl_module_generator:generate(Target, BindingData1),
+    gl_nif_module_generator:generate(Target, BindingData1),
 
     ok.
 
@@ -206,6 +281,10 @@ main(Args) ->
 -include_lib("eunit/include/eunit.hrl").
 
 erlangify_enum_name_test() ->
+    "and_" = erlangify_enum_name("GL_AND"),
+    "or_" = erlangify_enum_name("GL_OR"),
+    "xor_" = erlangify_enum_name("GL_XOR"),
+
     "texture_max_level" = erlangify_enum_name("GL_TEXTURE_MAX_LEVEL"),
     "src_alpha_saturate" = erlangify_enum_name("GL_SRC_ALPHA_SATURATE"),
     "unsigned_short_4_4_4_4" = erlangify_enum_name("GL_UNSIGNED_SHORT_4_4_4_4"),
@@ -217,6 +296,9 @@ erlangify_enum_name_test() ->
     ok.
 
 erlangify_enum_group_name_test() ->
+
+
+
     % XXX: Fixes needed (not urgent because group name like
     %      'ConvolutionTargetEXT' are not used by the binding specs (for now..)
     "texture_parameter_name" = erlangify_enum_group_name("TextureParameterName"),
