@@ -1,0 +1,77 @@
+name: Build
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/build.yml"
+      - "rebar.config"
+      - "src/**"
+      - "test/**"
+      - "binding-specs.conf"
+      - "gl-specs.xml"
+  pull_request:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/build.yml"
+      - "rebar.config"
+      - "src/**"
+      - "test/**"
+      - "binding-specs.conf"
+      - "gl-specs.xml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "build-${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  ubuntu:
+    name: Ubuntu OTP 28
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the source code
+        uses: actions/checkout@v4
+
+      - name: Set up Erlang/OTP
+        uses: erlangsters/setup-erlang-otp@v1
+        with:
+          erlang-version: 28
+          install-rebar3: true
+
+      - name: Compile the generator
+        run: rebar3 compile
+
+      - name: Run the generator tests
+        run: rebar3 as test eunit
+
+      - name: Build the escript
+        run: rebar3 escriptize
+
+      - name: Generate every supported target
+        run: |
+          set -euo pipefail
+          gen="$PWD/_build/default/bin/opengl_gen"
+          while read -r api version; do
+            work="$(mktemp -d)"
+            cp gl-specs.xml binding-specs.conf "$work/"
+            (
+              cd "$work"
+              "$gen" "$api" "$version"
+              test -s gl.erl
+              test -s gl.hrl
+              test -s gl.c
+            )
+          done <<'EOF'
+          gl 3.3
+          gl 4.1
+          gl 4.6
+          gles 2.0
+          gles 3.0
+          gles 3.1
+          gles 3.2
+          EOF
