@@ -61,11 +61,11 @@ The generator writes `gl.erl`, `gl.hrl`, and `gl.c` in the current working direc
 
 ## Populate a target repository
 
-The `populate-binding-*` scripts are maintainer helpers for the `graphics-stack` workspace layout. They generate the three files in this repository, then copy them into the sibling target clone.
+The `scripts/populate-binding-*` helpers are for the `graphics-stack` workspace layout. They generate the three files in this repository, then copy them into the sibling target clone.
 
 ```bash
-./populate-binding-gl-4.6.sh
-./populate-binding-gles-3.2.sh
+./scripts/populate-binding-gl-4.6.sh
+./scripts/populate-binding-gles-3.2.sh
 ```
 
 Run them sequentially unless each run is isolated. Do not hand-edit generated files in the target repositories.

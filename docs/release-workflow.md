@@ -23,16 +23,16 @@ Populate scripts write generator-root `gl.erl`, `gl.hrl`, and `gl.c` before
 copying files into target repositories. Run them sequentially unless each run
 is isolated in its own temporary generator output directory.
 
-Use the target-specific maintainer scripts. They assume this repository sits
-next to the target clones in the `graphics-stack` workspace:
+Use the target-specific maintainer scripts in `scripts/`. They assume this
+repository sits next to the target clones in the `graphics-stack` workspace:
 
-- `populate-binding-gl-3.3.sh`
-- `populate-binding-gl-4.1.sh`
-- `populate-binding-gl-4.6.sh`
-- `populate-binding-gles-2.0.sh`
-- `populate-binding-gles-3.0.sh`
-- `populate-binding-gles-3.1.sh`
-- `populate-binding-gles-3.2.sh`
+- `scripts/populate-binding-gl-3.3.sh`
+- `scripts/populate-binding-gl-4.1.sh`
+- `scripts/populate-binding-gl-4.6.sh`
+- `scripts/populate-binding-gles-2.0.sh`
+- `scripts/populate-binding-gles-3.0.sh`
+- `scripts/populate-binding-gles-3.1.sh`
+- `scripts/populate-binding-gles-3.2.sh`
 
 ## Repository Boundaries
 

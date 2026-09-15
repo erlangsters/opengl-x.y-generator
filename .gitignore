@@ -18,3 +18,8 @@ logs
 *.iml
 rebar3.crashdump
 *~
+
+# Scratch generator output in the repository root.
+/gl.erl
+/gl.hrl
+/gl.c
